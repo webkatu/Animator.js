@@ -127,7 +127,13 @@ var Animator = (function() {
 	});
 
 	Animator.prototype.isDisplay = function() {
-		return Boolean(this.css.display !== 'none');
+		if(this.css.display === 'none') {
+			return false;
+		}
+		if(this.css.opacity !== this.originalCSS.opacity) {
+			return false;
+		}
+		return true;
 	};
 
 	var getTransitionTime = function(transition) {
@@ -140,11 +146,15 @@ var Animator = (function() {
 		//現在この関数が実行されていることの証明書;
 		var processId = animator.processId = new Object();
 
-		var style = animator.element.style;
-		if(! animator.isDisplay()) {
-			style.opacity = '0';
-			style.display = 'block';
+		//すでに表示されているなら処理を終了;
+		if(animator.isDisplay()) {
+			return 0;
 		}
+
+		var style = animator.element.style;
+		style.display = 'block';
+		style.opacity = '0';
+		style.transition = '';
 		//display: blockと同時に実行するとtransitionが適用されないので非同期で;
 		window.requestAnimationFrame(function() {
 			setTimeout(function() {
