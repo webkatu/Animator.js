@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Animator.js</title>
+	<script src="Animator.js"></script>
+</head>
+<body>
+	<button id="show">show</button>
+	<button id="hide">hide</button>
+	<button id="wait">wait</button><input type="text" value="1000" size="6"><span>milli second</span>
+	<button id="showAsync">show(非同期)</button>
+	<button id="hideAsync">hide(非同期)</button>
+	<ul>
+		<span>transition</span>
+		<li>duration: <input id="duration" type="text" value="1s"></li>
+		<li>timingFunction: <input id="timingFunction" type="text" value="ease"></li>
+		<li>delay: <input id="delay" type="text" value="0s"></li>
+	</ul>
+	<div class="square"></div>
+	<style type="text/css">
+		ul {
+			list-style-position: inside;
+			padding: 0;
+		}
+		button {
+			padding: 10px;
+			margin-left: 10px;
+		}
+		button:first-of-type {
+			margin-left: 0;
+		}
+		.square {
+			width: 300px;
+			height: 300px;
+			background-color: #3aa;
+		}
+	</style>
+	<script>
+		var square = document.querySelector('.square');
+		var animator = new Animator(square);
+
+		var show = document.getElementById('show');
+		var hide = document.getElementById('hide');
+		var wait = document.getElementById('wait');
+		var showAsync = document.getElementById('showAsync');
+		var hideAsync = document.getElementById('hideAsync');
+		var duration = document.getElementById('duration');
+		var timingFunction= document.getElementById('timingFunction');
+		var delay = document.getElementById('delay');
+
+		show.onclick = function() {
+			animator.show({
+				duration: duration.value,
+				timingFunction: timingFunction.value,
+				delay: delay.value,
+			}, false);
+		};
+		hide.onclick = function() {
+			animator.hide({
+				duration: duration.value,
+				timingFunction: timingFunction.value,
+				delay: delay.value,
+			}, false);
+		};
+		wait.onclick = function() {
+			animator.wait(wait.nextSibling.value);
+		};
+		showAsync.onclick = function() {
+			animator.show({
+				duration: duration.value,
+				timingFunction: timingFunction.value,
+				delay: delay.value,
+			}, true);
+		};
+		hideAsync.onclick = function() {
+			animator.hide({
+				duration: duration.value,
+				timingFunction: timingFunction.value,
+				delay: delay.value,
+			}, true);
+		};
+	</script>
+</body>
+</html>
