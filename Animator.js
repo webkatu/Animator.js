@@ -49,6 +49,10 @@ var Animator = (function() {
 
 	//callbackでpromiseオブジェクトを返すとresolve時に次のタスクに行く;
 	Animator.prototype.animate = function(callback, async) {
+		if(typeof callback !== 'function') {
+			return this;
+		}
+
 		if(async === true) {
 			this.processId = new Object();
 			this.promise = callback();
