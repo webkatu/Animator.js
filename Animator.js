@@ -1,93 +1,16 @@
-var AnimationController = (function() {
-
-	var AnimationController = function() {
-		var self = this;
-
-		//この配列に実行したいアニメーションなどのメソッドを追加していく;
-		var queue = [];
-		//キュー自体を識別するユニークなid;
-		//キューが変えられたらidを変える;
-		queue.id = new Object();
-		//キューが空かどうかの真偽値を返す;
-		queue.isEmpty = function() {
-			return !Boolean(this.length);
-		};
-		//キューが動いているかどうかの真偽値;
-		queue.busy = false;
-		//キューを動かす(キューに入っているメソッドを実行していく);
-		queue.run = function() {
-			//既にキューが動いているなら終了;
-			if(queue.busy) {
-				return;
-			}
-
-			var id = queue.id;
-			queue.busy = true;
-			//キューを動かす処理.キューにデータが無くなるまで停止しない;
-			(function _run() {
-				//キューが変わっている(キューがclearされた)なら停止;
-				if(id !== queue.id) {
-					return;
-				}
-				//キューが空であれば停止する;
-				if(queue.isEmpty()) {
-					queue.busy = false;
-					return;
-				}
-
-				//キューに入っているメソッドを実行.戻り値はミリ秒を期待している;
-				var time = queue[0].method();
-				time = Number(time) || 0;
-				self.dequeue();
-				//アニメーション終了後、次のメソッドを実行する;
-				setTimeout(_run, time);
-			})();
-		};
-		//キューにアニメーションなどのメソッドを追加する;
-		this.enqueue = function(method) {
-			if(typeof method !== 'function') {
-				return this;
-			}
-			queue.push({
-				method: method,
-				//start: new Date().getTime(),
-			});
-			queue.run();
-			return this;
-		};
-		//キューの先頭を消す;
-		this.dequeue = function() {
-			queue.shift();
-			return this;
-		};
-		//キューの中のデータを全て消す;
-		this.clear = function() {
-			queue.length = 0;
-			queue.id = new Object();
-			queue.busy = false;
-			return this;
-		};
-	};
-
-	return AnimationController;
-})();
-
-
 var Animator = (function() {
 	var Animator = function(element) {
-		AnimationController.apply(this, null);
-
 		//例外処理;
 		if(arguments.length === 0) {
 			throw (function() {
 				var error = new TypeError();
-				error.message = "Failed to construct 'Animator': 1 argument required, but only 0 present.";
+				error.message = "Failed to construct 'Animation': 1 argument required, but only 0 present.";
 				return error;
 			})();
 		}else if(!(element instanceof HTMLElement)) {
 			throw (function() {
 				var error = new TypeError();
-				error.message = "Failed to construct 'Animator': Element must be provided.";
+				error.message = "Failed to construct 'Animation': Element must be provided.";
 				return error;
 			})();
 		}
@@ -110,7 +33,11 @@ var Animator = (function() {
 				configurable: true,
 				writable: true,
 			},
-			animationController: { value: new AnimationController() },
+			promise: {
+				value: Promise.resolve(),
+				configurable: true,
+				writable: true,
+			},
 			//現在実行されている関数を識別する証明書;
 			processId: {
 				value: null,
@@ -120,22 +47,20 @@ var Animator = (function() {
 		});
 	};
 
-	Animator.prototype = Object.create(AnimationController.prototype, {
-		constructor: {
-			value: AnimationController
-		}
-	});
-
-	//callbackでミリ秒をreturnすると次のタスクはその時間実行されない;
+	//callbackでpromiseオブジェクトを返すとresolve時に次のタスクに行く;
 	Animator.prototype.animate = function(callback, async) {
 		if(async === true) {
 			this.processId = new Object();
-			this.animationController.clear();
+			this.promise = callback();
+			if(! this.promise instanceof Promise) {
+				this.promise = Promise.resolve();
+			}
+			return this;
 		}
-		this.animationController.enqueue(function() {
+
+		this.promise = this.promise.then(function() {
 			return callback();
 		});
-
 		return this;
 	};
 
@@ -153,13 +78,21 @@ var Animator = (function() {
 		return duration + delay;
 	};
 
-	var show = function(animator, transition) {
+	var showPromise = function(animator, transition) {
+		var resolve;
+		var reject;
+		var promise = new Promise(function(res, rej) {
+			resolve = res;
+			reject = rej;
+		});
+
 		//現在この関数が実行されていることの証明書;
 		var processId = animator.processId;
-
+		
 		//すでに表示されているなら処理を終了;
 		if(animator.isDisplay() && isSameOpacity(animator)) {
-			return 0;
+			resolve();
+			return promise;
 		}
 
 		var style = animator.element.style;
@@ -181,23 +114,33 @@ var Animator = (function() {
 		setTimeout(function() {
 			//割り込み処理が入ったなら何もせず終了;
 			if(animator.processId !== processId) {
+				reject();
 				return;
 			}
 
 			style.opacity = '';
 			style.transition = '';
+			resolve();
 		}, transitionTime);
 
-		return transitionTime;
+		return promise;
 	};
 
-	var hide = function(animator, transition) {
+	var hidePromise = function(animator, transition) {
+		var resolve;
+		var reject;
+		var promise = new Promise(function(res, rej) {
+			resolve = res;
+			reject = rej;
+		});
+
 		//現在この関数が実行されていることの証明書;
 		var processId = animator.processId;
 
 		//display: none なら処理を終了;
 		if(! animator.isDisplay()) {
-			return 0;
+			resolve();
+			return promise;
 		}
 
 		var style = animator.element.style;
@@ -211,15 +154,17 @@ var Animator = (function() {
 		setTimeout(function() {
 			//割り込み処理が入ったなら何もせず終了;
 			if(animator.processId !== processId) {
+				reject();
 				return;
 			}
 
 			style.display = 'none';
 			style.opacity = '';
 			style.transition = '';
+			resolve();
 		}, transitionTime);
 
-		return transitionTime;
+		return promise;
 	};
 
 	Animator.prototype.show = function(transition, async) {
@@ -232,9 +177,8 @@ var Animator = (function() {
 		transition.delay = transition.delay || this.defaultTransition.delay;
 
 		var self = this;
-
 		return this.animate(function() {
-			return show(self, transition);
+			return showPromise(self, transition);
 		}, async);
 	};
 
@@ -248,17 +192,19 @@ var Animator = (function() {
 		transition.delay = transition.delay || this.defaultTransition.delay;
 
 		var self = this;
-
 		return this.animate(function() {
-			return hide(self, transition);
+			return hidePromise(self, transition);
 		}, async);
 	};
 
 	Animator.prototype.wait = function(ms) {
 		return this.animate(function() {
-			return Number(ms) || 0;
+			return new Promise(function(resolve, reject) {
+				setTimeout(resolve, Number(ms) || 0);
+			});
 		}, false);
 	};
 
 	return Animator;
+
 })();
