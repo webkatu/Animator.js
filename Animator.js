@@ -126,14 +126,25 @@ var Animator = (function() {
 		}
 	});
 
+	//callbackでミリ秒をreturnすると次のタスクはその時間実行されない;
+	Animator.prototype.animate = function(callback, async) {
+		if(async === true) {
+			this.processId = new Object();
+			this.animationController.clear();
+		}
+		this.animationController.enqueue(function() {
+			return callback();
+		});
+
+		return this;
+	};
+
 	Animator.prototype.isDisplay = function() {
-		if(this.css.display === 'none') {
-			return false;
-		}
-		if(this.css.opacity !== this.originalCSS.opacity) {
-			return false;
-		}
-		return true;
+		return this.css.display !== 'none';
+	};
+
+	var isSameOpacity = function(animator) {
+		return animator.css.opacity === animator.originalCSS.opacity;
 	};
 
 	var getTransitionTime = function(transition) {
@@ -144,10 +155,10 @@ var Animator = (function() {
 
 	var show = function(animator, transition) {
 		//現在この関数が実行されていることの証明書;
-		var processId = animator.processId = new Object();
+		var processId = animator.processId;
 
 		//すでに表示されているなら処理を終了;
-		if(animator.isDisplay()) {
+		if(animator.isDisplay() && isSameOpacity(animator)) {
 			return 0;
 		}
 
@@ -182,7 +193,7 @@ var Animator = (function() {
 
 	var hide = function(animator, transition) {
 		//現在この関数が実行されていることの証明書;
-		var processId = animator.processId = new Object();
+		var processId = animator.processId;
 
 		//display: none なら処理を終了;
 		if(! animator.isDisplay()) {
@@ -212,6 +223,7 @@ var Animator = (function() {
 	};
 
 	Animator.prototype.show = function(transition, async) {
+		//引数チェック;
 		if(typeof transition !== 'object' || transition === null) {
 			transition = new Object();
 		}
@@ -220,16 +232,14 @@ var Animator = (function() {
 		transition.delay = transition.delay || this.defaultTransition.delay;
 
 		var self = this;
-		if(async === true) {
-			this.animationController.clear();
-		}
-		this.animationController.enqueue(function() {
+
+		return this.animate(function() {
 			return show(self, transition);
-		});
-		return this;
+		}, async);
 	};
 
 	Animator.prototype.hide = function(transition, async) {
+		//引数チェック;
 		if(typeof transition !== 'object' || transition === null) {
 			transition = new Object();
 		}
@@ -238,22 +248,17 @@ var Animator = (function() {
 		transition.delay = transition.delay || this.defaultTransition.delay;
 
 		var self = this;
-		if(async === true) {
-			this.animationController.clear();
-		}
-		this.animationController.enqueue(function() {
+
+		return this.animate(function() {
 			return hide(self, transition);
-		});
-		return this;
+		}, async);
 	};
 
 	Animator.prototype.wait = function(ms) {
-		this.animationController.enqueue(function() {
+		return this.animate(function() {
 			return Number(ms) || 0;
-		});
-		return this;
+		}, false);
 	};
 
 	return Animator;
-
 })();
