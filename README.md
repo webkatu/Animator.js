@@ -1,5 +1,10 @@
 # Animator.js
 
+
+非同期処理のアニメーションを管理しながら実行できる。  
+<a href="http://webkatu.com/sample/Animator.js/demo.html" target="_blank">Demo</a>
+
+
 ## 使い方
 
 var animator = new Animator(element)
