@@ -2,7 +2,7 @@
 
 
 非同期処理のアニメーションを管理しながら実行できる。  
-<a href="http://webkatu/github.io/Animator.js/demo.html" target="_blank">Demo</a>
+<a href="http://webkatu.github.io/Animator.js/demo.html" target="_blank">Demo</a>
 
 
 ## 使い方
@@ -94,7 +94,7 @@ animator.defaultTransition = {
 animator.hide().show();
 ```
 ### animator.displayingMode
-表示に使うcssのプロパティを指定する。  
+hide/showの表示に使うcssのプロパティを指定する。  
 デフォルトはdisplayだが、visibilityに変更できる。  
 ```
 animator.displayingMode = 'visibility';
