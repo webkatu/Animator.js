@@ -36,6 +36,12 @@ var Animator = (function() {
 				configurable: true,
 				writable: true,
 			},
+			displayingMode: {
+				value: 'display',
+				enumerable: true,
+				configurable: true,
+				writable: true,
+			},
 			promise: {
 				value: Promise.resolve(),
 				configurable: true,
@@ -75,7 +81,11 @@ var Animator = (function() {
 	};
 
 	Animator.prototype.isDisplay = function() {
-		return this.css.display !== 'none';
+		if(this.displayingMode === 'visibility') {
+			return this.css.visibility !== 'hidden';
+		}else {
+			return this.css.display !== 'none';
+		}
 	};
 
 	var isSameOpacity = function(animator) {
@@ -97,7 +107,18 @@ var Animator = (function() {
 		transition.timingFunction = transition.timingFunction || this.defaultTransition.timingFunction;
 		transition.delay = transition.delay || this.defaultTransition.delay;
 
+		var self = this;
 		return this.animate(function(animator, processId, next) {
+			var property;
+			var value;
+			if(self.displayingMode === 'visibility') {
+				property = 'visibility';
+				value = 'visible';
+			}else {
+				property = 'display';
+				value = 'block';
+			}
+
 			//すでに表示されているなら処理を終了;
 			if(animator.isDisplay() && isSameOpacity(animator)) {
 				next();
@@ -105,7 +126,7 @@ var Animator = (function() {
 			}
 
 			var style = animator.element.style;
-			style.display = 'block';
+			style[property] = value;
 			style.opacity = '0';
 			style.transition = '';
 			//display: blockと同時に実行するとtransitionが適用されないので非同期で;
@@ -142,9 +163,18 @@ var Animator = (function() {
 		transition.timingFunction = transition.timingFunction || this.defaultTransition.timingFunction;
 		transition.delay = transition.delay || this.defaultTransition.delay;
 
+		var self = this;
 		return this.animate(function(animator, processId, next) {
-
-			//display: none なら処理を終了;
+			var property;
+			var value;
+			if(self.displayingMode === 'visibility') {
+				property = 'visibility';
+				value = 'hidden';
+			}else {
+				property = 'display';
+				value = 'none';
+			}
+			//表示されていないなら処理を終了;
 			if(! animator.isDisplay()) {
 				next();
 				return;
@@ -164,7 +194,7 @@ var Animator = (function() {
 					return;
 				}
 
-				style.display = 'none';
+				style[property] = value;
 				style.opacity = '';
 				style.transition = '';
 				next();
